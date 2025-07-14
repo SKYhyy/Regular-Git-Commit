@@ -71,8 +71,7 @@ if [ "$ascii_lock" -eq 1 ]; then
     fecho -BIp "Non-ASCII Hook:"
 
     cd "$(git rev-parse --show-toplevel)"
-
-    for file in $(git diff --cached --name-only --diff-filter=ACM); do
+    for file in $(git diff --cached --name-only --diff-filter=ACM -- "$@"); do
         if [ -f "$file" ]; then
             matches=$(LC_ALL=C grep -n '[^[:print:][:space:]]' "$file")
             if [ -n "$matches" ]; then
@@ -100,7 +99,7 @@ while IFS=$'\t' read -r add del file; do
     [[ "$add" == "-" || "$del" == "-" ]] && continue
     added=$((added + add))
     deleted=$((deleted + del))
-done < <(git diff --cached --numstat)
+done < <(git diff --cached --numstat -- "$@")
 total=$((added + deleted))
 
 fecho -BIp "Atomic Commit Hook:"
@@ -291,7 +290,8 @@ fi
 msg="$Type$Scope$breaking_change_note: $description$Body$Breaking_change$Close_issue"
 echo -e "\n${BOLD_ITALIC_P}Conventional Commit Message:${RESET}\n$msg\n"
 
-echo -e "$msg" | git commit -F - 2>&1
+files_to_commit=("$@")
+echo -e "$msg" | git commit -F - -- "${files_to_commit[@]}" 2>&1
 commit_status=$?
 if [ $commit_status -ne 0 ]; then
     exit 1
